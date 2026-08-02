@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SALES
+  TECH
+}
+
+enum TimeLogStatus {
+  OPEN
+  CLOSED
+}
+
+enum LeadStatus {
+  NEW
+  PUSHED
+  CLOSED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  COMPLETED
+  FAILED
+}
+
+enum SMSKind {
+  REVIEW
+  MARKETING
+}
+
+enum SMSStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  timeLogs     TimeLog[]
+  upsellLogs   UpsellLog[]
+  leads        Lead[]        @relation("LeadCreator")
+  campaigns    SMSCampaign[]
+}
+
+model TimeLog {
+  id           String        @id @default(cuid())
+  userId       String
+  punchedInAt  DateTime      @default(now())
+  punchedOutAt DateTime?
+  status       TimeLogStatus @default(OPEN)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklist  ChecklistItem[]
+
+  @@index([userId, status])
+}
+
+model ChecklistTemplate {
+  id        String   @id @default(cuid())
+  label     String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model ChecklistItem {
+  id         String    @id @default(cuid())
+  timeLogId  String
+  label      String
+  checked    Boolean   @default(false)
+  checkedAt  DateTime?
+  sortOrder  Int       @default(0)
+
+  timeLog TimeLog @relation(fields: [timeLogId], references: [id], onDelete: Cascade)
+
+  @@index([timeLogId])
+}
+
+model UpsellRule {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  tip         String?
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  logs UpsellLog[]
+}
+
+model UpsellLog {
+  id          String   @id @default(cuid())
+  techId      String
+  ruleId      String?
+  description String
+  amount      Float?
+  jobberJobId String?
+  createdAt   DateTime @default(now())
+
+  tech User        @relation(fields: [techId], references: [id], onDelete: Cascade)
+  rule UpsellRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([techId])
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  notes       String?
+  source      String?
+  status      LeadStatus @default(NEW)
+  pushToJobber Boolean   @default(false)
+  jobberId    String?
+  createdById String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  createdBy User @relation("LeadCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model JobberClient {
+  id            String    @id @default(cuid())
+  jobberId      String    @unique
+  name          String
+  firstName     String?
+  lastName      String?
+  email         String?
+  phone         String?
+  tags          String    @default("[]")
+  isCommercial  Boolean   @default(false)
+  isArchived    Boolean   @default(false)
+  lastServiceAt DateTime?
+  jobberWebUri  String?
+  rawJson       String?
+  syncedAt      DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  jobs JobberJob[]
+
+  @@index([isCommercial])
+  @@index([lastServiceAt])
+  @@index([name])
+}
+
+model JobberJob {
+  id            String    @id @default(cuid())
+  jobberId      String    @unique
+  clientId      String?
+  title         String?
+  status        String?
+  completedAt   DateTime?
+  scheduledAt   DateTime?
+  jobberWebUri  String?
+  rawJson       String?
+  syncedAt      DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  client JobberClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([completedAt])
+}
+
+model SMSCampaign {
+  id           String         @id @default(cuid())
+  name         String
+  filterJson   String         @default("{}")
+  messageBody  String
+  status       CampaignStatus @default(DRAFT)
+  createdById  String
+  totalCount   Int            @default(0)
+  sentCount    Int            @default(0)
+  failedCount  Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  createdBy User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  messages  SMSMessage[]
+}
+
+model SMSMessage {
+  id           String    @id @default(cuid())
+  campaignId   String?
+  to           String
+  content      String
+  status       SMSStatus @default(PENDING)
+  kind         SMSKind
+  providerId   String?
+  error        String?
+  clientName   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  campaign SMSCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId])
+  @@index([kind, createdAt])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  topic       String
+  itemId      String
+  accountId   String?
+  payload     String
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([topic, itemId])
+  @@index([createdAt])
+}

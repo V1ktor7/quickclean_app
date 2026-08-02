@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pane — Window Cleaning Quote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#17203A;
+    --bg:#E9EDF9;
+    --surface:#FFFFFF;
+    --teal:#2B4ACB;
+    --teal-deep:#1D3391;
+    --mint:#A9BAF0;
+    --line:#D3DAF0;
+    --muted:#5D6A8C;
+    --danger:#B4552B;
+    --shadow:0 1px 2px rgba(23,32,58,.06), 0 8px 24px rgba(23,32,58,.10);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 48px}
+
+  /* Header */
+  .head{display:flex;align-items:baseline;gap:10px;margin:4px 2px 18px}
+  .mark{font-family:'Space Grotesk';font-weight:700;font-size:22px;letter-spacing:-.5px}
+  .mark .dot{color:var(--teal)}
+  .head .sub{font-size:12.5px;color:var(--muted);font-weight:500}
+
+  /* Price hero */
+  .hero{
+    position:relative;overflow:hidden;
+    background:linear-gradient(155deg,var(--teal-deep),var(--teal));
+    color:#fff;border-radius:20px;padding:22px 22px 20px;margin-bottom:16px;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{ /* glass sheen signature */
+    content:"";position:absolute;top:-60%;right:-10%;width:70%;height:200%;
+    background:linear-gradient(75deg,transparent,rgba(255,255,255,.14),transparent);
+    transform:rotate(8deg);pointer-events:none;
+  }
+  .hero .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:.8;font-weight:600}
+  .hero .price{font-family:'Space Grotesk';font-weight:700;font-size:56px;line-height:1;margin:6px 0 4px;letter-spacing:-1.5px}
+  .hero .price .cur{font-size:30px;vertical-align:top;opacity:.85;margin-right:2px}
+  .hero .summary{font-size:13px;opacity:.9;font-weight:500}
+  .hero .rounded{font-size:11px;opacity:.7;margin-top:2px}
+  .hero.custom .price{font-size:30px;letter-spacing:-.5px;line-height:1.15}
+
+  /* Cards */
+  .card{background:var(--surface);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .label{font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .label .hint{text-transform:none;letter-spacing:0;font-weight:500;color:var(--teal-deep)}
+
+  /* Stepper */
+  .stepper{display:flex;align-items:center;gap:12px}
+  .stepper button{
+    width:52px;height:52px;border:none;border-radius:14px;background:var(--bg);
+    color:var(--ink);font-size:26px;font-weight:600;cursor:pointer;flex:none;
+    display:flex;align-items:center;justify-content:center;transition:background .12s;
+  }
+  .stepper button:active{background:var(--mint)}
+  .stepper .val{flex:1;text-align:center}
+  .stepper .val input{
+    width:100%;border:none;background:transparent;text-align:center;
+    font-family:'Space Grotesk';font-weight:600;font-size:38px;color:var(--ink);
+    -moz-appearance:textfield;
+  }
+  .stepper .val input::-webkit-outer-spin-button,
+  .stepper .val input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .stepper .val small{display:block;font-size:11px;color:var(--muted);margin-top:-2px;font-weight:500}
+
+  /* Segmented + toggle groups */
+  .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .seg.two{grid-template-columns:repeat(2,1fr)}
+  .seg button{
+    border:1.5px solid var(--line);background:var(--surface);color:var(--muted);
+    border-radius:12px;padding:13px 6px;font-family:'Inter';font-size:14px;font-weight:600;
+    cursor:pointer;transition:all .12s;line-height:1.2;
+  }
+  .seg button small{display:block;font-size:11px;font-weight:500;opacity:.8;margin-top:2px}
+  .seg button.on{border-color:var(--teal);background:var(--teal);color:#fff}
+  .seg button.on small{opacity:.9}
+
+  /* Slider row */
+  .slide-row{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .slide-row.hidden{display:none}
+  .slide-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .slide-top .n{font-family:'Space Grotesk';font-weight:600;font-size:20px}
+  .slide-top .f{font-size:13px;color:var(--teal-deep);font-weight:600}
+  input[type=range]{width:100%;-webkit-appearance:none;height:6px;border-radius:6px;background:var(--line);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--teal);cursor:pointer;box-shadow:0 2px 6px rgba(29,51,145,.4)}
+  input[type=range]::-moz-range-thumb{width:26px;height:26px;border:none;border-radius:50%;background:var(--teal);cursor:pointer}
+  .slide-note{font-size:11.5px;color:var(--muted);margin-top:7px}
+
+  /* Discount amount */
+  .disc-amt{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .disc-amt.hidden{display:none}
+  .disc-amt label{font-size:13px;color:var(--muted);font-weight:500;flex:1}
+  .disc-amt .money{display:flex;align-items:center;background:var(--bg);border-radius:10px;padding:0 12px}
+  .disc-amt .money span{color:var(--muted);font-weight:600}
+  .disc-amt .money input{width:64px;border:none;background:transparent;font-family:'Space Grotesk';font-weight:600;font-size:18px;padding:10px 4px;text-align:right;color:var(--ink);-moz-appearance:textfield}
+  .disc-amt .money input::-webkit-outer-spin-button,.disc-amt .money input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+  /* Breakdown */
+  .breakdown .row{display:flex;justify-content:space-between;font-size:14px;padding:7px 0;color:var(--ink)}
+  .breakdown .row .k{color:var(--muted)}
+  .breakdown .row .v{font-family:'Space Grotesk';font-weight:500}
+  .breakdown .row.sub{border-top:1px solid var(--line);margin-top:4px;padding-top:11px;font-weight:600}
+  .breakdown .row.sub .k{color:var(--ink)}
+  .breakdown .row.total{border-top:1.5px solid var(--line);margin-top:6px;padding-top:12px;font-weight:600}
+  .breakdown .row.total .k{color:var(--ink);font-weight:600}
+  .breakdown .row.total .v{font-size:20px;font-weight:700}
+  .breakdown .mult{color:var(--teal-deep)}
+
+  .callout{background:#FBEEE6;border:1px solid #EAD0BF;color:#7A3E1E;border-radius:14px;padding:14px 16px;font-size:13.5px;margin-bottom:12px}
+  .callout b{font-weight:600}
+  .foot{font-size:11.5px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.6}
+  .foot code{background:var(--surface);padding:2px 6px;border-radius:5px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span class="mark">Pane<span class="dot">.</span></span>
+    <span class="sub">Window cleaning quote</span>
+  </div>
+
+  <!-- PRICE HERO -->
+  <div class="hero" id="hero">
+    <div class="eyebrow">Estimated quote</div>
+    <div class="price" id="priceDisplay"><span class="cur">$</span>0</div>
+    <div class="summary" id="summary">—</div>
+    <div class="rounded" id="rounded">Rounded to nearest $5</div>
+  </div>
+
+  <div class="callout" id="customNote" style="display:none">
+    <b>170+ panes — mansion territory.</b> These need an on-site visit and a custom estimate. Book a walk-through to price it.
+  </div>
+
+  <!-- PANES -->
+  <div class="card">
+    <div class="label">Panes of glass <span class="hint" id="tierHint"></span></div>
+    <div class="stepper">
+      <button type="button" onclick="bump(-1)">−</button>
+      <div class="val">
+        <input id="panes" type="number" inputmode="numeric" value="45" min="1" max="300">
+        <small>Count 2–3 very small panes as 1</small>
+      </div>
+      <button type="button" onclick="bump(1)">+</button>
+    </div>
+  </div>
+
+  <!-- FLOORS + HEIGHT -->
+  <div class="card">
+    <div class="label">Floors</div>
+    <div class="seg" id="floorSeg">
+      <button type="button" data-f="3" class="on">1–3</button>
+      <button type="button" data-f="4">4</button>
+      <button type="button" data-f="5">5</button>
+      <button type="button" data-f="6">6+</button>
+    </div>
+    <div class="slide-row hidden" id="heightRow">
+      <div class="slide-top">
+        <span class="n"><span id="aboveN">0</span> panes above 3rd floor</span>
+        <span class="f">Height ×<span id="fFactor">1.00</span></span>
+      </div>
+      <input type="range" id="aboveSlider" min="0" max="45" value="0">
+      <div class="slide-note">High panes take ~2.5 min vs ~1.5 min lower down. Drag to match how many are up high — pre-filled with an estimate.</div>
+    </div>
+  </div>
+
+  <!-- METHOD -->
+  <div class="card">
+    <div class="label">Method</div>
+    <div class="seg two" id="methodSeg">
+      <button type="button" data-m="1" class="on">Pole / water-fed<small>Standard</small></button>
+      <button type="button" data-m="1.5">Manual<small>×1.5 (ladder / by hand)</small></button>
+    </div>
+  </div>
+
+  <!-- SIDES -->
+  <div class="card">
+    <div class="label">Sides</div>
+    <div class="seg two" id="sidesSeg">
+      <button type="button" data-s="1" class="on">Exterior only<small>Standard</small></button>
+      <button type="button" data-s="1.8">Inside + outside<small>×1.8 (2× less 10%)</small></button>
+    </div>
+  </div>
+
+  <!-- DISCOUNT -->
+  <div class="card">
+    <div class="label">Discount</div>
+    <div class="seg" id="discSeg" style="grid-template-columns:repeat(3,1fr)">
+      <button type="button" data-d="none" class="on">None</button>
+      <button type="button" data-d="plan">Bi-annual<small>2 visits · −$50 each</small></button>
+      <button type="button" data-d="special">Special<small>−$50–100</small></button>
+    </div>
+    <div class="disc-amt hidden" id="discAmtRow">
+      <label id="discAmtLabel">Amount off</label>
+      <div class="money"><span>$</span><input id="discAmt" type="number" inputmode="numeric" value="50" min="0" step="5"></div>
+    </div>
+  </div>
+
+  <!-- BREAKDOWN -->
+  <div class="card breakdown" id="breakdown">
+    <div class="label">Quote breakdown</div>
+    <div id="rows"></div>
+  </div>
+
+  <div class="foot">Apply your ±5 pane rounding before entering the count.</div>
+</div>
+
+<script>
+(function(){
+  var state = { panes:45, floors:3, above:0, aboveTouched:false, method:1, sides:1, disc:'none', discAmt:50 };
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  // Estimated share of panes above the 3rd floor, by floor selection
+  function estimateShare(f){ return f===4?0.25 : f===5?0.40 : f===6?0.55 : 0; }
+
+  function estimateAbove(){ return Math.round(state.panes * estimateShare(state.floors)); }
+
+  function tierName(N){
+    if(N<=25) return '1–25';
+    if(N<=40) return '26–40';
+    if(N<=60) return '41–60';
+    if(N<=80) return '61–80';
+    if(N<=100) return '81–100';
+    if(N<=120) return '101–120';
+    if(N<=170) return '121–170';
+    return '170+';
+  }
+
+  function round5(x){ return Math.round(x/5)*5; }
+
+  function compute(){
+    var N = state.panes;
+    var base = Math.max(162*Math.log(N) - 317, 175);
+    var F = state.floors>=4 ? (1 + 0.67*(state.above/N)) : 1;
+    var M = state.method;
+    var S = state.sides;
+    var gross = base * F * M * S;                 // one service, before discount
+    var visits = state.disc==='plan' ? 2 : 1;     // bi-annual = 2 services/year
+    var perVisitDisc = state.disc==='none' ? 0 : state.discAmt;  // $ off each visit
+    var perVisit = Math.max(gross - perVisitDisc, 0);
+    return { N:N, base:base, F:F, M:M, S:S, gross:gross, visits:visits, perVisitDisc:perVisitDisc, perVisit:perVisit };
+  }
+
+  function render(){
+    var N = state.panes;
+    $('tierHint').textContent = tierName(N) + ' range';
+
+    // Height slider bounds + value
+    $('aboveSlider').max = N;
+    if(!state.aboveTouched) state.above = estimateAbove();
+    if(state.above > N) state.above = N;
+    $('aboveSlider').value = state.above;
+    $('aboveN').textContent = state.above;
+
+    var heightRow = $('heightRow');
+    if(state.floors>=4) heightRow.classList.remove('hidden');
+    else heightRow.classList.add('hidden');
+
+    // Custom quote state
+    var custom = N > 170;
+    $('customNote').style.display = custom ? 'block' : 'none';
+    var hero = $('hero');
+
+    if(custom){
+      hero.classList.add('custom');
+      $('priceDisplay').innerHTML = 'On-site estimate';
+      $('summary').textContent = N + ' panes · custom pricing';
+      $('rounded').style.display = 'none';
+      $('fFactor').textContent = (state.floors>=4 ? (1 + 0.67*(state.above/N)) : 1).toFixed(2);
+      $('rows').innerHTML = '<div class="row"><span class="k">Panes</span><span class="v">'+N+'</span></div>'+
+        '<div class="row"><span class="k">Pricing</span><span class="v">Book a walk-through</span></div>';
+      return;
+    }
+
+    hero.classList.remove('custom');
+    $('rounded').style.display = 'block';
+    var c = compute();
+    $('fFactor').textContent = c.F.toFixed(2);
+
+    var perVisitRounded = round5(c.perVisit);
+    var annual = perVisitRounded * c.visits;         // plan total is exactly 2× the per-visit shown
+    var headline = c.visits===2 ? annual : perVisitRounded;
+    $('priceDisplay').innerHTML = '<span class="cur">$</span>' + headline;
+
+    // Summary line
+    var parts = [N + ' panes'];
+    parts.push(state.floors>=4 ? (state.floors===6?'6+ floors':state.floors+' floors') : '1–3 floors');
+    if(state.method!==1) parts.push('manual');
+    parts.push(state.sides!==1 ? 'inside + out' : 'exterior');
+    if(c.visits===2) parts.push('bi-annual');
+    $('summary').textContent = parts.join(' · ');
+
+    // Sub-line under price
+    if(c.visits===2) $('rounded').textContent = '$'+perVisitRounded+' per visit · 2 visits/year';
+    else $('rounded').textContent = 'Rounded to nearest $5';
+
+    // Breakdown rows as plain dollar amounts (no equations shown)
+    var afterF = c.base * c.F;
+    var afterM = afterF * c.M;
+    var afterS = afterM * c.S;
+    var rows = '';
+    rows += row('Base price ('+N+' panes)', '$'+Math.round(c.base));
+    if(c.F!==1) rows += row('Extra floors ('+(state.floors===6?'6+':state.floors)+')', '+$'+Math.round(afterF-c.base), true);
+    if(c.M!==1) rows += row('Manual method', '+$'+Math.round(afterM-afterF), true);
+    if(c.S!==1) rows += row('Inside + outside', '+$'+Math.round(afterS-afterM), true);
+
+    if(c.visits===2){
+      if(c.perVisitDisc>0) rows += row('Bi-annual discount (−$'+c.perVisitDisc+' / visit)', '−$'+c.perVisitDisc);
+      rows += subrow('Price per visit', '$'+perVisitRounded);
+      rows += '<div class="row total"><span class="k">Total — 2 visits / year</span><span class="v">$'+annual+'</span></div>';
+    } else {
+      if(c.perVisitDisc>0) rows += row('Special discount', '−$'+c.perVisitDisc);
+      rows += '<div class="row total"><span class="k">Total quote</span><span class="v">$'+perVisitRounded+'</span></div>';
+    }
+    $('rows').innerHTML = rows;
+  }
+
+  function subrow(k,v){
+    return '<div class="row sub"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';
+  }
+
+  function row(k,v,mult){
+    return '<div class="row"><span class="k">'+k+'</span><span class="v'+(mult?' mult':'')+'">'+v+'</span></div>';
+  }
+
+  // Controls
+  window.bump = function(d){
+    var v = state.panes + d;
+    if(v<1) v=1; if(v>300) v=300;
+    state.panes = v; state.aboveTouched=false;
+    $('panes').value = v; render();
+  };
+
+  $('panes').addEventListener('input', function(){
+    var v = parseInt(this.value||'0',10);
+    if(isNaN(v)) return;
+    state.panes = Math.min(Math.max(v,1),300);
+    state.aboveTouched=false; render();
+  });
+
+  function segSetup(segId, attr, apply){
+    var seg = $(segId);
+    seg.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        seg.querySelectorAll('button').forEach(function(b){b.classList.remove('on');});
+        btn.classList.add('on');
+        apply(btn.getAttribute(attr));
+        render();
+      });
+    });
+  }
+
+  segSetup('floorSeg','data-f',function(v){ state.floors=parseInt(v,10); state.aboveTouched=false; });
+  segSetup('methodSeg','data-m',function(v){ state.method=parseFloat(v); });
+  segSetup('sidesSeg','data-s',function(v){ state.sides=parseFloat(v); });
+  segSetup('discSeg','data-d',function(v){
+    state.disc=v;
+    var amtRow = $('discAmtRow');
+    if(v==='none') amtRow.classList.add('hidden');
+    else{
+      amtRow.classList.remove('hidden');
+      state.discAmt = v==='plan'?50:75;
+      $('discAmt').value = state.discAmt;
+      $('discAmtLabel').textContent = v==='plan' ? 'Off each visit' : 'Amount off';
+    }
+  });
+
+  $('aboveSlider').addEventListener('input', function(){
+    state.above = parseInt(this.value,10); state.aboveTouched=true; render();
+  });
+
+  $('discAmt').addEventListener('input', function(){
+    var v = parseInt(this.value||'0',10); state.discAmt = isNaN(v)?0:v; render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
