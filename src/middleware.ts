@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC = ["/login", "/api/auth", "/api/webhooks/jobber"];
+const PUBLIC = [
+  "/login",
+  "/api/auth",
+  "/api/webhooks/jobber",
+  "/api/jobber/oauth/callback",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

@@ -1,4 +1,5 @@
 import { AppError, fetchWithTimeout, TimeoutError } from "@/lib/errors";
+import { getValidAccessToken } from "@/lib/jobber/oauth";
 
 const JOBBER_URL = "https://api.getjobber.com/api/graphql";
 const JOBBER_VERSION = "2025-04-16";
@@ -12,14 +13,7 @@ export async function jobberGraphQL<T>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
-  const token = process.env.JOBBER_ACCESS_TOKEN;
-  if (!token) {
-    throw new AppError(
-      "Jobber is not configured (missing JOBBER_ACCESS_TOKEN)",
-      503,
-      "JOBBER_UNCONFIGURED",
-    );
-  }
+  const token = await getValidAccessToken();
 
   let res: Response;
   try {
@@ -41,6 +35,15 @@ export async function jobberGraphQL<T>(
       throw new TimeoutError("Jobber");
     }
     throw err;
+  }
+
+  // Access token may have expired early — one retry after refresh is handled by getValidAccessToken next call
+  if (res.status === 401) {
+    throw new AppError(
+      "Jobber token rejected. Re-connect Jobber from Admin.",
+      401,
+      "JOBBER_UNAUTHORIZED",
+    );
   }
 
   if (!res.ok) {

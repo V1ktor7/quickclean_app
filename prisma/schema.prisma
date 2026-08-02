@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -237,4 +237,15 @@ model WebhookEvent {
 
   @@unique([topic, itemId])
   @@index([createdAt])
+}
+
+model JobberConnection {
+  id           String   @id @default("default")
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  accountId    String?
+  accountName  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

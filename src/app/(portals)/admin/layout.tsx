@@ -15,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       userName={session.user.name}
       nav={[
         { href: "/admin", label: "Overview" },
+        { href: "/admin/integrations", label: "Integrations" },
         { href: "/admin/clients", label: "Clients" },
         { href: "/admin/campaigns", label: "SMS" },
         { href: "/admin/commissions", label: "Commissions" },

@@ -43,10 +43,16 @@ export async function POST(req: Request) {
     let jobberId: string | null = null;
     let status: "NEW" | "PUSHED" = "NEW";
 
-    if (pushToJobber && process.env.JOBBER_ACCESS_TOKEN) {
-      // Soft push: mark as PUSHED when token present; full GraphQL clientCreate can be wired later
-      status = "PUSHED";
-      jobberId = `pending-${Date.now()}`;
+    if (pushToJobber) {
+      // Soft push flag for Admin/Jobber follow-up; full clientCreate can be wired when scopes allow
+      try {
+        const { getValidAccessToken } = await import("@/lib/jobber/oauth");
+        await getValidAccessToken();
+        status = "PUSHED";
+        jobberId = `pending-${Date.now()}`;
+      } catch {
+        status = "NEW";
+      }
     }
 
     const lead = await prisma.lead.create({

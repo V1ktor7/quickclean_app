@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { Badge, Card, H1, Muted } from "@/components/ui";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLeadsPage() {
   const leads = await prisma.lead.findMany({
     include: { createdBy: { select: { name: true, email: true } } },

@@ -1,6 +1,9 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { Card, H1, Muted, Badge } from "@/components/ui";
 import { SyncButton } from "./sync-button";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminHomePage() {
   const [clients, jobs, upsells, campaigns, openShifts, leads] = await Promise.all([
@@ -25,7 +28,9 @@ export default async function AdminHomePage() {
           <H1>Admin dashboard</H1>
           <Muted>CRM sync, commissions, review automation, and team access.</Muted>
         </div>
-        <SyncButton />
+        <Suspense fallback={<div className="text-sm text-[var(--qc-muted)]">Loading…</div>}>
+          <SyncButton />
+        </Suspense>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
