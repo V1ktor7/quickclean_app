@@ -20,9 +20,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Auth.js uses `__Secure-authjs.session-token` on HTTPS; getToken must match.
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
+    secureCookie: req.nextUrl.protocol === "https:",
   });
 
   if (!token || token.active === false) {

@@ -5,7 +5,28 @@
 import { spawnSync } from "node:child_process";
 
 const db = process.env.DATABASE_URL?.trim();
+const onRailway = Boolean(
+  process.env.RAILWAY_ENVIRONMENT ||
+    process.env.RAILWAY_PROJECT_ID ||
+    process.env.RAILWAY_SERVICE_ID,
+);
+
 if (!db || db.includes("USER:PASSWORD@HOST")) {
+  // Accidental GitHub→Railway web service: Postgres-only setup, app lives on Vercel.
+  if (onRailway && !process.env.VERCEL) {
+    console.log(`
+┌──────────────────────────────────────────────────────────────┐
+│  Skipping app build on Railway                               │
+│                                                              │
+│  This repo deploys the Next.js app on Vercel.                │
+│  Railway should only run Postgres (no web service needed).   │
+│  You can delete/disconnect any Railway service that builds   │
+│  this repo — it is not required.                             │
+└──────────────────────────────────────────────────────────────┘
+`);
+    process.exit(0);
+  }
+
   console.error(`
 ┌──────────────────────────────────────────────────────────────┐
 │  Missing DATABASE_URL                                        │
