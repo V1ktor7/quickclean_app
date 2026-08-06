@@ -54,10 +54,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  timeLogs     TimeLog[]
-  upsellLogs   UpsellLog[]
-  leads        Lead[]        @relation("LeadCreator")
-  campaigns    SMSCampaign[]
+  timeLogs         TimeLog[]
+  upsellLogs       UpsellLog[]
+  leads            Lead[]                 @relation("LeadCreator")
+  salesQuotes      SalesQuote[]           @relation("QuoteCreator")
+  commissionRates  SalesCommissionRate[]
+  campaigns        SMSCampaign[]
 }
 
 model TimeLog {
@@ -140,10 +142,63 @@ model Lead {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  createdBy User @relation("LeadCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy User         @relation("LeadCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  quotes    SalesQuote[]
 
   @@index([status])
   @@index([createdAt])
+}
+
+/** Per-salesman commission % by service line */
+model SalesCommissionRate {
+  id         String   @id @default(cuid())
+  userId     String
+  /** WINDOW | GUTTER | SPIDER | SERVICE_PLAN */
+  serviceKey String
+  percent    Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serviceKey])
+  @@index([userId])
+}
+
+model SalesQuote {
+  id                 String   @id @default(cuid())
+  leadId             String?
+  createdById        String
+  name               String
+  phone              String?
+  email              String?
+  address            String?
+  notes              String?
+  /** Window calculator inputs */
+  panes              Int      @default(0)
+  floors             Int      @default(3)
+  panesAbove         Int      @default(0)
+  method             Float    @default(1)
+  sides              Float    @default(1)
+  discountType       String   @default("none")
+  discountAmount     Float    @default(0)
+  isCustomEstimate   Boolean  @default(false)
+  windowAmount       Float    @default(0)
+  gutterAmount       Float    @default(0)
+  spiderAmount       Float    @default(0)
+  servicePlanAmount  Float    @default(0)
+  totalAmount        Float    @default(0)
+  /** Full breakdown JSON for admin display */
+  calculatorJson     String   @default("{}")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  lead      Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdBy User  @relation("QuoteCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([createdById])
+  @@index([createdAt])
+  @@index([leadId])
 }
 
 model JobberClient {

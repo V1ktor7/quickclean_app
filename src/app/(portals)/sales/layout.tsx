@@ -14,7 +14,8 @@ export default async function SalesLayout({ children }: { children: React.ReactN
       roleLabel="Sales"
       userName={session.user.name}
       nav={[
-        { href: "/sales", label: "Tools" },
+        { href: "/sales/quote", label: "New quote" },
+        { href: "/sales", label: "Pane tool" },
         { href: "/sales/leads", label: "Lead intake" },
       ]}
     >

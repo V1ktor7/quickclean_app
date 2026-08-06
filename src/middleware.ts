@@ -39,13 +39,27 @@ export async function middleware(req: NextRequest) {
 
   const role = token.role as string;
 
-  if (pathname.startsWith("/admin") || pathname.startsWith("/api/users") || pathname.startsWith("/api/clients") || pathname.startsWith("/api/campaigns") || pathname.startsWith("/api/jobber")) {
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/users") ||
+    pathname.startsWith("/api/clients") ||
+    pathname.startsWith("/api/campaigns") ||
+    pathname.startsWith("/api/jobber") ||
+    pathname.startsWith("/api/commission-rates") ||
+    pathname.startsWith("/api/templates") ||
+    pathname.startsWith("/api/reviews")
+  ) {
     if (role !== "ADMIN") {
       return deny(req, role);
     }
   }
 
-  if (pathname.startsWith("/sales") || pathname.startsWith("/sales-tools")) {
+  if (
+    pathname.startsWith("/sales") ||
+    pathname.startsWith("/sales-tools") ||
+    pathname.startsWith("/api/quotes") ||
+    pathname.startsWith("/api/leads")
+  ) {
     if (role !== "SALES" && role !== "ADMIN") {
       return deny(req, role);
     }
