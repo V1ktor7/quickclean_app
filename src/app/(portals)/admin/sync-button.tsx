@@ -33,15 +33,26 @@ export function SyncButton() {
   async function sync() {
     setBusy(true);
     setMsg(null);
-    const res = await fetch("/api/jobber/sync", { method: "POST" });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setMsg(data.error || "Sync failed");
-      return;
+    try {
+      const res = await fetch("/api/jobber/sync", { method: "POST" });
+      let data: { error?: string; clients?: number; jobs?: number } = {};
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        setMsg(res.ok ? "Sync finished but response was not JSON." : `Sync failed (HTTP ${res.status})`);
+        return;
+      }
+      if (!res.ok) {
+        setMsg(data.error || `Sync failed (HTTP ${res.status})`);
+        return;
+      }
+      setMsg(`Synced ${data.clients ?? 0} clients, ${data.jobs ?? 0} jobs`);
+      window.location.href = "/admin";
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Sync request failed");
+    } finally {
+      setBusy(false);
     }
-    setMsg(`Synced ${data.clients} clients, ${data.jobs} jobs`);
-    window.location.href = "/admin";
   }
 
   return (

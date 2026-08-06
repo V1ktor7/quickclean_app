@@ -102,7 +102,7 @@ type JobCompleteData = {
     client?: {
       id: string;
       name?: string | null;
-      phones?: { nodes: Array<{ number?: string | null }> } | null;
+      phones?: Array<{ number?: string | null }> | null;
     } | null;
   } | null;
 };
@@ -117,7 +117,7 @@ const JOB_QUERY = `
       client {
         id
         name
-        phones { nodes { number } }
+        phones { number }
       }
     }
   }
@@ -133,8 +133,8 @@ const CLIENT_QUERY = `
       isCompany
       isArchived
       jobberWebUri
-      emails { nodes { address } }
-      phones { nodes { number } }
+      emails { address }
+      phones { number }
       tags { nodes { label } }
     }
   }
@@ -149,8 +149,8 @@ type ClientData = {
     isCompany?: boolean | null;
     isArchived?: boolean | null;
     jobberWebUri?: string | null;
-    emails?: { nodes: Array<{ address?: string | null }> } | null;
-    phones?: { nodes: Array<{ number?: string | null }> } | null;
+    emails?: Array<{ address?: string | null }> | null;
+    phones?: Array<{ number?: string | null }> | null;
     tags?: { nodes: Array<{ label?: string | null }> } | null;
   } | null;
 };
@@ -172,7 +172,7 @@ export async function processJobComplete(itemId: string, accountId?: string) {
     const job = data.job;
     if (!job) throw new AppError("Job not found in Jobber", 404, "JOB_NOT_FOUND");
 
-    const phone = job.client?.phones?.nodes?.[0]?.number;
+    const phone = job.client?.phones?.[0]?.number;
     if (!phone) {
       await finishEvent(started.event.id, {
         payload: job,
@@ -255,8 +255,8 @@ export async function processClientCreate(itemId: string, accountId?: string) {
     const tags = (c.tags?.nodes ?? [])
       .map((t) => t.label)
       .filter((x): x is string => Boolean(x));
-    const email = c.emails?.nodes?.[0]?.address ?? null;
-    const phone = c.phones?.nodes?.[0]?.number ?? null;
+    const email = c.emails?.[0]?.address ?? null;
+    const phone = c.phones?.[0]?.number ?? null;
 
     await prisma.jobberClient.upsert({
       where: { jobberId: c.id },

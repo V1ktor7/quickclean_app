@@ -97,7 +97,7 @@ export default function AdminClientsPage() {
         ) : clients.length === 0 ? (
           <Card>
             <p className="text-sm text-[var(--qc-muted)]">
-              No clients in cache yet. Run Sync Jobber from the overview (requires JOBBER_ACCESS_TOKEN).
+              No clients in cache yet. Connect Jobber, then run Sync Jobber from the overview.
             </p>
           </Card>
         ) : (
