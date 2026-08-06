@@ -177,17 +177,22 @@ export function buildClientWhere(
   return where;
 }
 
+const recipientSelect = {
+  id: true,
+  name: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  isCommercial: true,
+  lastServiceAt: true,
+} as const;
+
 export async function previewCampaignRecipients(filter: ClientFilter) {
   const where = buildClientWhere(filter);
   const clients = await prisma.jobberClient.findMany({
     where,
-    select: {
-      id: true,
-      name: true,
-      phone: true,
-      isCommercial: true,
-      lastServiceAt: true,
-    },
+    select: recipientSelect,
     orderBy: { name: "asc" },
     take: 2000,
   });
@@ -202,13 +207,7 @@ export async function recipientsByIds(clientIds: string[]) {
       isArchived: false,
       phone: { not: null },
     },
-    select: {
-      id: true,
-      name: true,
-      phone: true,
-      isCommercial: true,
-      lastServiceAt: true,
-    },
+    select: recipientSelect,
     orderBy: { name: "asc" },
   });
   return clients.filter((c) => Boolean(c.phone));

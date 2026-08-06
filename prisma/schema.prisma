@@ -38,6 +38,8 @@ enum SMSKind {
 
 enum SMSStatus {
   PENDING
+  AWAITING_APPROVAL
+  DENIED
   SENT
   FAILED
 }
@@ -191,11 +193,30 @@ model JobberJob {
   @@index([completedAt])
 }
 
+model SMSTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  kind      SMSKind
+  body      String
+  /** JSON: [{ "key": "booking", "label": "Book", "url": "https://..." }] */
+  linksJson String   @default("[]")
+  /** Image URL inserted as text (Quo API has no MMS) */
+  imageUrl  String?
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages SMSMessage[]
+
+  @@index([kind, isActive])
+}
+
 model SMSCampaign {
   id           String         @id @default(cuid())
   name         String
   filterJson   String         @default("{}")
   messageBody  String
+  templateId   String?
   status       CampaignStatus @default(DRAFT)
   createdById  String
   totalCount   Int            @default(0)
@@ -206,11 +227,16 @@ model SMSCampaign {
 
   createdBy User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
   messages  SMSMessage[]
+
+  @@index([templateId])
 }
 
 model SMSMessage {
   id           String    @id @default(cuid())
   campaignId   String?
+  templateId   String?
+  clientId     String?
+  jobberJobId  String?
   to           String
   content      String
   status       SMSStatus @default(PENDING)
@@ -222,8 +248,11 @@ model SMSMessage {
   updatedAt    DateTime  @updatedAt
 
   campaign SMSCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  template SMSTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@index([campaignId])
+  @@index([templateId])
+  @@index([kind, status, createdAt])
   @@index([kind, createdAt])
 }
 

@@ -30,7 +30,7 @@ export function getJobberEndpoints(): JobberEndpoint[] {
     {
       id: "job-complete",
       label: "Job closed / completed webhook",
-      purpose: "When a job is marked complete (Jobber JOB_COMPLETE / job closed), send the client a Google review SMS via Quo — unless the client has review SMS muted — and update local job cache.",
+      purpose: "When a job is closed, queue a review SMS for Admin approve/deny in Reviews (uses active template + variables). Muted clients are skipped.",
       path: "/api/webhooks/jobber/job-complete",
       jobberTopic: "JOB_CLOSED (alias JOB_COMPLETE)",
       whereToPaste: "Jobber Developer Center → Webhooks → topic JOB_CLOSED",

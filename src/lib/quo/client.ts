@@ -1,6 +1,12 @@
 import { SMSKind, SMSStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AppError, fetchWithTimeout, TimeoutError } from "@/lib/errors";
+import {
+  defaultReviewLink,
+  getActiveTemplate,
+  renderTemplateBody,
+  type TemplateVars,
+} from "@/lib/sms/templates";
 
 const QUO_URL = "https://api.quo.com/v1/messages";
 
@@ -9,7 +15,12 @@ export type SendSmsInput = {
   content: string;
   kind: SMSKind;
   campaignId?: string;
+  templateId?: string;
+  clientId?: string;
+  jobberJobId?: string;
   clientName?: string | null;
+  /** If set, update this row instead of creating new ones */
+  existingMessageId?: string;
 };
 
 function normalizeE164(phone: string): string {
@@ -36,22 +47,44 @@ export async function sendQuoMessage(input: SendSmsInput) {
     normalizeE164,
   );
 
-  const records = await Promise.all(
-    recipients.map((to) =>
-      prisma.sMSMessage.create({
-        data: {
-          to,
-          content: input.content,
-          kind: input.kind,
-          campaignId: input.campaignId,
-          clientName: input.clientName ?? null,
-          status: SMSStatus.PENDING,
-        },
-      }),
-    ),
-  );
+  let records;
+  if (input.existingMessageId) {
+    const existing = await prisma.sMSMessage.update({
+      where: { id: input.existingMessageId },
+      data: {
+        to: recipients[0]!,
+        content: input.content,
+        status: SMSStatus.PENDING,
+        error: null,
+        kind: input.kind,
+        campaignId: input.campaignId,
+        templateId: input.templateId,
+        clientId: input.clientId,
+        jobberJobId: input.jobberJobId,
+        clientName: input.clientName ?? null,
+      },
+    });
+    records = [existing];
+  } else {
+    records = await Promise.all(
+      recipients.map((to) =>
+        prisma.sMSMessage.create({
+          data: {
+            to,
+            content: input.content,
+            kind: input.kind,
+            campaignId: input.campaignId,
+            templateId: input.templateId,
+            clientId: input.clientId,
+            jobberJobId: input.jobberJobId,
+            clientName: input.clientName ?? null,
+            status: SMSStatus.PENDING,
+          },
+        }),
+      ),
+    );
+  }
 
-  // Quo accepts max 10 recipients per request — chunk
   const chunks: string[][] = [];
   for (let i = 0; i < recipients.length; i += 10) {
     chunks.push(recipients.slice(i, i + 10));
@@ -138,23 +171,94 @@ export async function sendQuoMessage(input: SendSmsInput) {
   };
 }
 
-export async function sendReviewSms(opts: {
+/** Queue a review SMS for admin approve/deny (does not send yet). */
+export async function queueReviewSms(opts: {
   to: string;
   clientName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  clientId?: string | null;
+  jobberJobId?: string | null;
+  jobTitle?: string | null;
 }) {
-  const link =
-    process.env.REVIEW_LINK_URL ?? "https://g.page/r/CQzw419aCqLaEAE/review";
-  const template =
+  const template = await getActiveTemplate(SMSKind.REVIEW);
+  const body =
+    template?.body ??
     process.env.REVIEW_SMS_TEMPLATE ??
-    "Thanks for choosing QuickClean! Leave a review: {{link}}";
-  const content = template.replace(/\{\{link\}\}/g, link);
+    "Hi {{firstName}}! Thanks for choosing QuickClean. We'd love a quick review: {{reviewLink}}";
+
+  const vars: TemplateVars = {
+    name: opts.clientName,
+    firstName: opts.firstName,
+    lastName: opts.lastName,
+    phone: opts.to,
+    email: opts.email,
+    reviewLink: defaultReviewLink(),
+    jobTitle: opts.jobTitle,
+  };
+
+  const content = renderTemplateBody(
+    body,
+    {
+      linksJson: template?.linksJson ?? "[]",
+      imageUrl: template?.imageUrl ?? null,
+    },
+    vars,
+  );
+
+  return prisma.sMSMessage.create({
+    data: {
+      to: normalizeE164(opts.to),
+      content,
+      kind: SMSKind.REVIEW,
+      status: SMSStatus.AWAITING_APPROVAL,
+      clientName: opts.clientName ?? null,
+      clientId: opts.clientId ?? null,
+      jobberJobId: opts.jobberJobId ?? null,
+      templateId: template?.id ?? null,
+    },
+  });
+}
+
+export async function approveReviewSms(opts: {
+  messageId: string;
+  contentOverride?: string;
+}) {
+  const msg = await prisma.sMSMessage.findUnique({ where: { id: opts.messageId } });
+  if (!msg) throw new AppError("Message not found", 404);
+  if (msg.kind !== SMSKind.REVIEW) {
+    throw new AppError("Not a review SMS", 400);
+  }
+  if (msg.status !== SMSStatus.AWAITING_APPROVAL) {
+    throw new AppError("Message is not awaiting approval", 400);
+  }
+
+  const content = (opts.contentOverride ?? msg.content).trim().slice(0, 1600);
+  if (!content) throw new AppError("Message body is empty", 400);
 
   const result = await sendQuoMessage({
-    to: opts.to,
+    to: msg.to,
     content,
     kind: SMSKind.REVIEW,
-    clientName: opts.clientName,
+    existingMessageId: msg.id,
+    templateId: msg.templateId ?? undefined,
+    clientId: msg.clientId ?? undefined,
+    jobberJobId: msg.jobberJobId ?? undefined,
+    clientName: msg.clientName,
   });
 
   return result.messages[0]!;
+}
+
+export async function denyReviewSms(messageId: string) {
+  const msg = await prisma.sMSMessage.findUnique({ where: { id: messageId } });
+  if (!msg) throw new AppError("Message not found", 404);
+  if (msg.status !== SMSStatus.AWAITING_APPROVAL) {
+    throw new AppError("Message is not awaiting approval", 400);
+  }
+  return prisma.sMSMessage.update({
+    where: { id: messageId },
+    data: { status: SMSStatus.DENIED, error: "Denied by admin" },
+  });
 }

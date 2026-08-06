@@ -23,13 +23,26 @@ type Recipient = {
   lastServiceAt: string | null;
 };
 
+type Template = {
+  id: string;
+  name: string;
+  body: string;
+  isActive: boolean;
+  imageUrl: string | null;
+};
+
 const SELECTION_KEY = "qc_campaign_client_ids";
 
 export default function AdminCampaignsPage() {
   const params = useSearchParams();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templateId, setTemplateId] = useState("");
+  const [variables, setVariables] = useState<Array<{ key: string; desc: string }>>([]);
   const [name, setName] = useState("");
   const [messageBody, setMessageBody] = useState("");
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const [saveAsActive, setSaveAsActive] = useState(false);
   const [pastMonths, setPastMonths] = useState("");
   const [clientType, setClientType] = useState<"all" | "residential" | "commercial">(
     "all",
@@ -52,7 +65,14 @@ export default function AdminCampaignsPage() {
   const load = useCallback(async () => {
     const res = await fetch("/api/campaigns");
     const data = await res.json();
-    if (res.ok) setCampaigns(data.campaigns || []);
+    if (!res.ok) return;
+    setCampaigns(data.campaigns || []);
+    setTemplates(data.templates || []);
+    setVariables(data.variables || []);
+    if (data.activeTemplate?.id) {
+      setTemplateId((prev) => prev || data.activeTemplate.id);
+      setMessageBody((prev) => prev || data.activeTemplate.body || "");
+    }
   }, []);
 
   useEffect(() => {
@@ -153,6 +173,13 @@ export default function AdminCampaignsPage() {
       body: JSON.stringify({
         name,
         messageBody,
+        templateId: templateId || null,
+        saveAsTemplate: saveTemplateName.trim()
+          ? {
+              name: saveTemplateName.trim(),
+              setActive: saveAsActive,
+            }
+          : undefined,
         filter: filterPayload(),
         clientIds: selectedIds,
         send: true,
@@ -168,7 +195,31 @@ export default function AdminCampaignsPage() {
       `Campaign complete — sent ${data.campaign.sentCount}, failed ${data.campaign.failedCount}`,
     );
     setName("");
-    setMessageBody("");
+    setSaveTemplateName("");
+    setSaveAsActive(false);
+    await load();
+  }
+
+  function applyTemplate(id: string) {
+    setTemplateId(id);
+    const t = templates.find((x) => x.id === id);
+    if (t) setMessageBody(t.body);
+  }
+
+  async function activateMarketingTemplate(id: string) {
+    setBusy(true);
+    const res = await fetch(`/api/templates/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ setActive: true }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error || "Could not set active template");
+      return;
+    }
+    setOk("Active marketing template updated.");
     await load();
   }
 
@@ -177,8 +228,8 @@ export default function AdminCampaignsPage() {
       <div>
         <H1>SMS marketing</H1>
         <Muted>
-          Target clients served this season with no upcoming jobs (or flip the filters), preview,
-          then select who gets the Quo broadcast.
+          Use templates with variables like {"{{firstName}}"} / {"{{name}}"}. Extra links and
+          image URLs are text only (Quo API has no MMS). Preview, select recipients, then send.
         </Muted>
       </div>
 
@@ -189,6 +240,33 @@ export default function AdminCampaignsPage() {
             <Input required value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
+            <Label>Template</Label>
+            <select
+              className="w-full rounded-xl border border-[var(--qc-line)] bg-white px-3 py-2 text-sm"
+              value={templateId}
+              onChange={(e) => applyTemplate(e.target.value)}
+            >
+              <option value="">Custom / none</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                  {t.isActive ? " (active)" : ""}
+                </option>
+              ))}
+            </select>
+            {templateId ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="mt-1"
+                disabled={busy}
+                onClick={() => void activateMarketingTemplate(templateId)}
+              >
+                Set as active marketing template
+              </Button>
+            ) : null}
+          </div>
+          <div>
             <Label>Message</Label>
             <Textarea
               required
@@ -196,8 +274,31 @@ export default function AdminCampaignsPage() {
               maxLength={1600}
               value={messageBody}
               onChange={(e) => setMessageBody(e.target.value)}
-              placeholder="Spring window cleaning special — reply YES to book."
+              placeholder="Hi {{firstName}}, spring windows special — reply YES to book."
             />
+            <p className="mt-1 text-xs text-[var(--qc-muted)]">
+              Vars: {variables.map((v) => `{{${v.key}}}`).join(", ") || "{{firstName}}, {{name}}, {{reviewLink}}"}
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <Label>Save this message as template (optional)</Label>
+              <Input
+                value={saveTemplateName}
+                onChange={(e) => setSaveTemplateName(e.target.value)}
+                placeholder="Spring 2026 promo"
+              />
+            </div>
+            <label className="flex items-end gap-2 pb-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4 accent-[var(--qc-accent)]"
+                checked={saveAsActive}
+                onChange={(e) => setSaveAsActive(e.target.checked)}
+                disabled={!saveTemplateName.trim()}
+              />
+              Make it the active marketing template
+            </label>
           </div>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <div>

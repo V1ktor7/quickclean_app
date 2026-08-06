@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { jobberGraphQL } from "@/lib/jobber/client";
 import { clearConnection } from "@/lib/jobber/oauth";
-import { sendReviewSms } from "@/lib/quo/client";
+import { queueReviewSms } from "@/lib/quo/client";
 import { AppError } from "@/lib/errors";
 
 export function verifyJobberSignature(rawBody: string, signatureHeader: string | null) {
@@ -235,14 +235,21 @@ export async function processJobComplete(itemId: string, accountId?: string) {
       };
     }
 
-    const sms = await sendReviewSms({
+    const sms = await queueReviewSms({
       to: phone,
-      clientName: job.client?.name ?? null,
+      clientName: job.client?.name ?? localClient?.name ?? null,
+      firstName: job.client?.name
+        ? job.client.name.split(/\s+/)[0]
+        : localClient?.firstName,
+      lastName: localClient?.lastName,
+      email: localClient?.email,
+      clientId: localClient?.id,
+      jobberJobId: job.id,
+      jobTitle: job.title,
     });
 
     await finishEvent(started.event.id, {
-      payload: { job, smsId: sms.id },
-      error: sms.status === "FAILED" ? sms.error : null,
+      payload: { job, smsId: sms.id, awaitingApproval: true },
     });
 
     return {
@@ -250,6 +257,7 @@ export async function processJobComplete(itemId: string, accountId?: string) {
       skipped: false as const,
       smsId: sms.id,
       status: sms.status,
+      awaitingApproval: true,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Webhook processing failed";
