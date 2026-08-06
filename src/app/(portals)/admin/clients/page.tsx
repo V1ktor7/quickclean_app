@@ -10,6 +10,7 @@ type Client = {
   phone?: string | null;
   email?: string | null;
   isCommercial: boolean;
+  skipReviewSms?: boolean;
   lastServiceAt?: string | null;
   tags: string[];
   jobberWebUri?: string | null;
@@ -46,6 +47,7 @@ export default function AdminClientsPage() {
   const [seasonStart, setSeasonStart] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const selectedIds = useMemo(
     () => Object.entries(selected).filter(([, v]) => v).map(([id]) => id),
@@ -90,6 +92,24 @@ export default function AdminClientsPage() {
     if (!selectedIds.length) return;
     sessionStorage.setItem(SELECTION_KEY, JSON.stringify(selectedIds));
     router.push("/admin/campaigns?fromSelection=1");
+  }
+
+  async function toggleSkipReview(clientId: string, skipReviewSms: boolean) {
+    setTogglingId(clientId);
+    const res = await fetch(`/api/clients/${clientId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skipReviewSms }),
+    });
+    setTogglingId(null);
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error || "Could not update review preference");
+      return;
+    }
+    setClients((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, skipReviewSms } : c)),
+    );
   }
 
   return (
@@ -219,6 +239,9 @@ export default function AdminClientsPage() {
                       ) : (
                         <Badge>Residential</Badge>
                       )}
+                      {c.skipReviewSms ? (
+                        <Badge tone="warn">Review SMS off</Badge>
+                      ) : null}
                       {c.hasUpcoming ? (
                         <Badge tone="warn">Upcoming job</Badge>
                       ) : (
@@ -228,6 +251,16 @@ export default function AdminClientsPage() {
                         <Badge key={t}>{t}</Badge>
                       ))}
                     </div>
+                    <label className="mt-3 flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-[var(--qc-accent)]"
+                        checked={Boolean(c.skipReviewSms)}
+                        disabled={togglingId === c.id}
+                        onChange={(e) => void toggleSkipReview(c.id, e.target.checked)}
+                      />
+                      Skip review SMS (bad client / do not ask for review)
+                    </label>
                   </div>
                 </div>
                 <div className="text-right text-sm">

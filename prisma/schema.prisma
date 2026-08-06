@@ -155,6 +155,8 @@ model JobberClient {
   tags          String    @default("[]")
   isCommercial  Boolean   @default(false)
   isArchived    Boolean   @default(false)
+  /** When true, JOB_COMPLETE does not send the Google review SMS */
+  skipReviewSms Boolean   @default(false)
   lastServiceAt DateTime?
   jobberWebUri  String?
   rawJson       String?

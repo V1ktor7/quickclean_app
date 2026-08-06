@@ -175,7 +175,7 @@ export async function processJobComplete(itemId: string, accountId?: string) {
     const phone = job.client?.phones?.[0]?.number;
     if (!phone) {
       await finishEvent(started.event.id, {
-        payload: job,
+        payload: { job, skipped: true, reason: "no_phone" },
         error: "No client phone on job",
       });
       return { topic: "JOB_COMPLETE", skipped: true as const, reason: "no_phone" };
@@ -213,6 +213,17 @@ export async function processJobComplete(itemId: string, accountId?: string) {
         rawJson: JSON.stringify(job),
       },
     });
+
+    if (localClient?.skipReviewSms) {
+      await finishEvent(started.event.id, {
+        payload: { job, skipped: true, reason: "skip_review" },
+      });
+      return {
+        topic: "JOB_COMPLETE",
+        skipped: true as const,
+        reason: "skip_review",
+      };
+    }
 
     const sms = await sendReviewSms({
       to: phone,

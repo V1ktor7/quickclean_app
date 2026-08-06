@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/integrations", label: "Integrations" },
         { href: "/admin/clients", label: "Clients" },
         { href: "/admin/campaigns", label: "SMS" },
+        { href: "/admin/reviews", label: "Reviews" },
         { href: "/admin/commissions", label: "Commissions" },
         { href: "/admin/users", label: "Users" },
         { href: "/admin/leads", label: "Leads" },

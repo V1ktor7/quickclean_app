@@ -142,7 +142,8 @@ export async function sendReviewSms(opts: {
   to: string;
   clientName?: string | null;
 }) {
-  const link = process.env.REVIEW_LINK_URL ?? "https://g.page/r/quickclean/review";
+  const link =
+    process.env.REVIEW_LINK_URL ?? "https://g.page/r/CQzw419aCqLaEAE/review";
   const template =
     process.env.REVIEW_SMS_TEMPLATE ??
     "Thanks for choosing QuickClean! Leave a review: {{link}}";
