@@ -88,8 +88,8 @@ export default function AdminReviewsPage() {
         <h2 className="font-semibold">How it works</h2>
         <ol className="list-decimal space-y-2 pl-5 text-sm text-[var(--qc-muted)]">
           <li>
-            Jobber fires the <code className="text-[var(--qc-ink)]">JOB_COMPLETE</code>{" "}
-            webhook when a job is closed.
+            Jobber fires the <code className="text-[var(--qc-ink)]">JOB_CLOSED</code>{" "}
+            webhook when a job is closed (not when it is only created).
           </li>
           <li>
             We load the job + client (name, phone) from Jobber and update our local job
@@ -201,7 +201,7 @@ export default function AdminReviewsPage() {
         <h2 className="font-semibold">Recent job-complete webhooks</h2>
         {completes.length === 0 ? (
           <p className="text-sm text-[var(--qc-muted)]">
-            No JOB_COMPLETE events yet. Confirm the webhook in Integrations.
+            No job-closed events yet. Close a job in Jobber to test (creating one is not enough).
           </p>
         ) : (
           <div className="max-h-64 space-y-2 overflow-y-auto text-sm">

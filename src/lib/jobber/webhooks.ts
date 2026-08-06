@@ -34,6 +34,12 @@ export type WebhookPayload = {
   accountId?: string;
 };
 
+export function normalizeJobberTopic(topic: string): string {
+  // Jobber Developer Center labels this "JOB_CLOSED"; payload/docs also use JOB_COMPLETE.
+  if (topic === "JOB_CLOSED") return "JOB_COMPLETE";
+  return topic;
+}
+
 export function parseWebhookPayload(rawBody: string): {
   topic: string;
   itemId: string;
@@ -46,12 +52,16 @@ export function parseWebhookPayload(rawBody: string): {
     throw new AppError("Invalid JSON", 400, "BAD_JSON");
   }
   const event = payload.data?.webHookEvent ?? payload;
-  const topic = event.topic;
+  const rawTopic = event.topic;
   const itemId = event.itemId;
-  if (!topic || !itemId) {
+  if (!rawTopic || !itemId) {
     throw new AppError("Missing topic or itemId", 400, "BAD_PAYLOAD");
   }
-  return { topic, itemId, accountId: event.accountId };
+  return {
+    topic: normalizeJobberTopic(rawTopic),
+    itemId,
+    accountId: event.accountId,
+  };
 }
 
 async function beginEvent(topic: string, itemId: string, accountId?: string) {
@@ -395,14 +405,17 @@ export async function handleJobberWebhookRequest(
 
   const { topic, itemId, accountId } = parseWebhookPayload(rawBody);
 
-  if (expectedTopic && topic !== expectedTopic) {
-    return Response.json(
-      {
-        error: `Expected topic ${expectedTopic}, got ${topic}`,
-        code: "TOPIC_MISMATCH",
-      },
-      { status: 400 },
-    );
+  if (expectedTopic) {
+    const normalizedExpected = normalizeJobberTopic(expectedTopic);
+    if (topic !== normalizedExpected) {
+      return Response.json(
+        {
+          error: `Expected topic ${expectedTopic}, got ${topic}`,
+          code: "TOPIC_MISMATCH",
+        },
+        { status: 400 },
+      );
+    }
   }
 
   const result = await dispatchJobberTopic(topic, itemId, accountId);
