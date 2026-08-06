@@ -3,7 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { AppError, jsonError } from "@/lib/errors";
 import { requireRole } from "@/lib/rbac";
-import { parseFilter, previewCampaignRecipients } from "@/lib/campaigns";
+import {
+  parseFilter,
+  previewCampaignRecipients,
+  recipientsByIds,
+  resolveSeasonStart,
+} from "@/lib/campaigns";
 import { sendQuoMessage } from "@/lib/quo/client";
 
 const createSchema = z.object({
@@ -14,8 +19,12 @@ const createSchema = z.object({
       pastMonths: z.number().nullable().optional(),
       commercialOnly: z.boolean().optional(),
       search: z.string().optional(),
+      servedThisSeason: z.boolean().optional(),
+      seasonStart: z.string().nullable().optional(),
+      upcomingJobs: z.enum(["any", "has", "none"]).optional(),
     })
     .optional(),
+  clientIds: z.array(z.string().min(1)).max(2000).optional(),
   previewOnly: z.boolean().optional(),
   send: z.boolean().optional(),
 });
@@ -46,20 +55,32 @@ export async function POST(req: Request) {
     }
 
     const filter = parseFilter(parsed.data.filter ?? {});
-    const recipients = await previewCampaignRecipients(filter);
+    const recipients =
+      parsed.data.clientIds && parsed.data.clientIds.length > 0
+        ? await recipientsByIds(parsed.data.clientIds)
+        : await previewCampaignRecipients(filter);
 
     if (parsed.data.previewOnly) {
       return Response.json({
         count: recipients.length,
+        recipients,
+        seasonStart: resolveSeasonStart(filter).toISOString(),
         sample: recipients.slice(0, 10),
       });
+    }
+
+    if (!recipients.length) {
+      throw new AppError("No recipients match this filter / selection", 400);
     }
 
     const campaign = await prisma.sMSCampaign.create({
       data: {
         name: parsed.data.name,
         messageBody: parsed.data.messageBody,
-        filterJson: JSON.stringify(filter),
+        filterJson: JSON.stringify({
+          ...filter,
+          clientIds: parsed.data.clientIds ?? null,
+        }),
         createdById: user.id,
         status: parsed.data.send ? CampaignStatus.SENDING : CampaignStatus.DRAFT,
         totalCount: recipients.length,
@@ -73,7 +94,6 @@ export async function POST(req: Request) {
     let sent = 0;
     let failed = 0;
 
-    // Send one-by-one for accurate per-recipient tracking (Quo also supports batches)
     for (const r of recipients) {
       if (!r.phone) continue;
       try {
