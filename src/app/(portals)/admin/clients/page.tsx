@@ -36,7 +36,9 @@ export default function AdminClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
-  const [commercialOnly, setCommercialOnly] = useState(false);
+  const [clientType, setClientType] = useState<"all" | "residential" | "commercial">(
+    "all",
+  );
   const [pastMonths, setPastMonths] = useState("");
   const [servedThisSeason, setServedThisSeason] = useState(false);
   const [upcomingJobs, setUpcomingJobs] = useState<"any" | "has" | "none">("any");
@@ -54,7 +56,7 @@ export default function AdminClientsPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("search", search);
-    if (commercialOnly) params.set("commercialOnly", "true");
+    if (clientType !== "all") params.set("clientType", clientType);
     if (pastMonths) params.set("pastMonths", pastMonths);
     if (servedThisSeason) params.set("servedThisSeason", "true");
     if (upcomingJobs !== "any") params.set("upcomingJobs", upcomingJobs);
@@ -70,7 +72,7 @@ export default function AdminClientsPage() {
     setClients(data.clients || []);
     setTotal(data.total || 0);
     setSeasonStart(data.seasonStart ?? null);
-  }, [search, commercialOnly, pastMonths, servedThisSeason, upcomingJobs]);
+  }, [search, clientType, pastMonths, servedThisSeason, upcomingJobs]);
 
   useEffect(() => {
     void load();
@@ -148,16 +150,19 @@ export default function AdminClientsPage() {
               ) : null}
             </label>
           </div>
-          <div className="flex items-end">
-            <label className="flex items-center gap-2 pb-2 text-sm">
-              <input
-                type="checkbox"
-                checked={commercialOnly}
-                onChange={(e) => setCommercialOnly(e.target.checked)}
-                className="size-4 accent-[var(--qc-accent)]"
-              />
-              Commercial only
-            </label>
+          <div>
+            <Label>Client type</Label>
+            <select
+              className="w-full rounded-xl border border-[var(--qc-line)] bg-white px-3 py-2 text-sm"
+              value={clientType}
+              onChange={(e) =>
+                setClientType(e.target.value as "all" | "residential" | "commercial")
+              }
+            >
+              <option value="all">All</option>
+              <option value="residential">Residential only</option>
+              <option value="commercial">Commercial only</option>
+            </select>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">

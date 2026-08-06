@@ -16,9 +16,15 @@ export const UPCOMING_JOB_STATUSES = [
 
 export type UpcomingJobsFilter = "any" | "has" | "none";
 
+export type ClientTypeFilter = "all" | "residential" | "commercial";
+
 export type ClientFilter = {
   pastMonths?: number | null;
+  /** @deprecated prefer clientType */
   commercialOnly?: boolean;
+  residentialOnly?: boolean;
+  /** all | residential | commercial — preferred over the boolean flags */
+  clientType?: ClientTypeFilter;
   search?: string;
   /** Clients with a completed job / lastServiceAt since season start */
   servedThisSeason?: boolean;
@@ -27,6 +33,16 @@ export type ClientFilter = {
   /** Filter by whether they have upcoming (not completed) jobs */
   upcomingJobs?: UpcomingJobsFilter;
 };
+
+export function resolveClientType(filter: ClientFilter): ClientTypeFilter {
+  if (filter.clientType === "residential" || filter.clientType === "commercial") {
+    return filter.clientType;
+  }
+  if (filter.clientType === "all") return "all";
+  if (filter.residentialOnly) return "residential";
+  if (filter.commercialOnly) return "commercial";
+  return "all";
+}
 
 export function defaultSeasonStart(now = new Date()): Date {
   // Season runs Mar 1 → Feb 28/29. Before March, use previous year's March 1.
@@ -55,6 +71,14 @@ export function parseFilter(raw: unknown): ClientFilter {
       ? upcomingRaw
       : undefined;
 
+  const clientTypeRaw = o.clientType;
+  const clientType: ClientTypeFilter | undefined =
+    clientTypeRaw === "all" ||
+    clientTypeRaw === "residential" ||
+    clientTypeRaw === "commercial"
+      ? clientTypeRaw
+      : undefined;
+
   return {
     pastMonths:
       typeof o.pastMonths === "number"
@@ -63,6 +87,8 @@ export function parseFilter(raw: unknown): ClientFilter {
           ? Number(o.pastMonths)
           : null,
     commercialOnly: Boolean(o.commercialOnly),
+    residentialOnly: Boolean(o.residentialOnly),
+    clientType,
     search: typeof o.search === "string" ? o.search : undefined,
     servedThisSeason: Boolean(o.servedThisSeason),
     seasonStart: typeof o.seasonStart === "string" ? o.seasonStart : null,
@@ -104,8 +130,11 @@ export function buildClientWhere(
     where.phone = { not: null };
   }
 
-  if (filter.commercialOnly) {
+  const clientType = resolveClientType(filter);
+  if (clientType === "commercial") {
     where.isCommercial = true;
+  } else if (clientType === "residential") {
+    where.isCommercial = false;
   }
 
   if (filter.pastMonths && filter.pastMonths > 0) {

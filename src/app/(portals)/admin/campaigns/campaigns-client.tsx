@@ -31,7 +31,9 @@ export default function AdminCampaignsPage() {
   const [name, setName] = useState("");
   const [messageBody, setMessageBody] = useState("");
   const [pastMonths, setPastMonths] = useState("");
-  const [commercialOnly, setCommercialOnly] = useState(false);
+  const [clientType, setClientType] = useState<"all" | "residential" | "commercial">(
+    "all",
+  );
   const [servedThisSeason, setServedThisSeason] = useState(true);
   const [upcomingJobs, setUpcomingJobs] = useState<"any" | "has" | "none">("none");
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -101,7 +103,7 @@ export default function AdminCampaignsPage() {
   function filterPayload() {
     return {
       pastMonths: pastMonths ? Number(pastMonths) : null,
-      commercialOnly,
+      clientType,
       servedThisSeason,
       upcomingJobs,
     };
@@ -231,16 +233,19 @@ export default function AdminCampaignsPage() {
                 Served this season
               </label>
             </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 pb-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={commercialOnly}
-                  onChange={(e) => setCommercialOnly(e.target.checked)}
-                  className="size-4 accent-[var(--qc-accent)]"
-                />
-                Commercial only
-              </label>
+            <div>
+              <Label>Client type</Label>
+              <select
+                className="w-full rounded-xl border border-[var(--qc-line)] bg-white px-3 py-2 text-sm"
+                value={clientType}
+                onChange={(e) =>
+                  setClientType(e.target.value as "all" | "residential" | "commercial")
+                }
+              >
+                <option value="all">All</option>
+                <option value="residential">Residential only</option>
+                <option value="commercial">Commercial only</option>
+              </select>
             </div>
           </div>
           {seasonStart || fromSelection ? (

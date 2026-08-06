@@ -18,6 +18,8 @@ const createSchema = z.object({
     .object({
       pastMonths: z.number().nullable().optional(),
       commercialOnly: z.boolean().optional(),
+      residentialOnly: z.boolean().optional(),
+      clientType: z.enum(["all", "residential", "commercial"]).optional(),
       search: z.string().optional(),
       servedThisSeason: z.boolean().optional(),
       seasonStart: z.string().nullable().optional(),

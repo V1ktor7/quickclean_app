@@ -31,6 +31,8 @@ export async function GET(req: Request) {
     const filter = parseFilter({
       pastMonths: url.searchParams.get("pastMonths"),
       commercialOnly: url.searchParams.get("commercialOnly") === "true",
+      residentialOnly: url.searchParams.get("residentialOnly") === "true",
+      clientType: url.searchParams.get("clientType") ?? undefined,
       search: url.searchParams.get("search") ?? undefined,
       servedThisSeason: url.searchParams.get("servedThisSeason") === "true",
       seasonStart: url.searchParams.get("seasonStart") ?? undefined,
