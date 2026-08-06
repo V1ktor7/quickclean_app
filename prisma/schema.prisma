@@ -44,6 +44,28 @@ enum SMSStatus {
   FAILED
 }
 
+/** Separate staffing tracks — tech vs sales never share a schedule */
+enum WorkforceTrack {
+  TECH
+  SALES
+}
+
+enum SlotAvailability {
+  AVAILABLE
+  UNAVAILABLE
+  UNKNOWN
+}
+
+enum AvailabilitySubmitStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum PostedScheduleStatus {
+  DRAFT
+  POSTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -54,12 +76,16 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  timeLogs         TimeLog[]
-  upsellLogs       UpsellLog[]
-  leads            Lead[]                 @relation("LeadCreator")
-  salesQuotes      SalesQuote[]           @relation("QuoteCreator")
-  commissionRates  SalesCommissionRate[]
-  campaigns        SMSCampaign[]
+  timeLogs                TimeLog[]
+  upsellLogs              UpsellLog[]
+  leads                   Lead[]                 @relation("LeadCreator")
+  salesQuotes             SalesQuote[]           @relation("QuoteCreator")
+  commissionRates         SalesCommissionRate[]
+  campaigns               SMSCampaign[]
+  availabilitySubs        AvailabilitySubmission[]
+  availabilitySlots       AvailabilitySlot[]
+  scheduleEntries         ScheduleEntry[]
+  createdSchedulePeriods  SchedulePeriod[]       @relation("ScheduleCreator")
 }
 
 model TimeLog {
@@ -334,4 +360,79 @@ model JobberConnection {
   accountName  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+/** One confirmation package per person per 2-week window per track */
+model AvailabilitySubmission {
+  id          String                   @id @default(cuid())
+  userId      String
+  track       WorkforceTrack
+  windowStart DateTime
+  status      AvailabilitySubmitStatus @default(DRAFT)
+  submittedAt DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slots AvailabilitySlot[]
+
+  @@unique([userId, track, windowStart])
+  @@index([track, windowStart, status])
+}
+
+model AvailabilitySlot {
+  id           String           @id @default(cuid())
+  submissionId String
+  userId       String
+  track        WorkforceTrack
+  /** Calendar day at UTC noon */
+  day          DateTime
+  /** Block start hour local intent: 8..17 (8am–6pm) */
+  hour         Int
+  status       SlotAvailability @default(UNKNOWN)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  submission AvailabilitySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, day, hour])
+  @@index([userId, track, day])
+  @@index([track, day, hour, status])
+}
+
+model SchedulePeriod {
+  id          String               @id @default(cuid())
+  track       WorkforceTrack
+  windowStart DateTime
+  status      PostedScheduleStatus @default(DRAFT)
+  postedAt    DateTime?
+  createdById String
+  notes       String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  createdBy User            @relation("ScheduleCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  entries   ScheduleEntry[]
+
+  @@unique([track, windowStart])
+  @@index([track, status])
+}
+
+model ScheduleEntry {
+  id         String   @id @default(cuid())
+  scheduleId String
+  userId     String
+  day        DateTime
+  hour       Int
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  schedule SchedulePeriod @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, userId, day, hour])
+  @@index([userId, day])
+  @@index([scheduleId, day, hour])
 }

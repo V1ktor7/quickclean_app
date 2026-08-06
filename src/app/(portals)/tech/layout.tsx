@@ -14,6 +14,7 @@ export default async function TechLayout({ children }: { children: React.ReactNo
       roleLabel="Tech"
       userName={session.user.name}
       nav={[
+        { href: "/tech/schedule", label: "Schedule" },
         { href: "/tech", label: "Time clock" },
         { href: "/tech/upsells", label: "Upsells" },
       ]}

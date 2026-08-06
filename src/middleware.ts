@@ -55,6 +55,15 @@ export async function middleware(req: NextRequest) {
   }
 
   if (
+    pathname.startsWith("/api/availability") ||
+    pathname.startsWith("/api/schedule")
+  ) {
+    if (role !== "TECH" && role !== "SALES" && role !== "ADMIN") {
+      return deny(req, role);
+    }
+  }
+
+  if (
     pathname.startsWith("/sales") ||
     pathname.startsWith("/sales-tools") ||
     pathname.startsWith("/api/quotes") ||
@@ -65,7 +74,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  if (pathname.startsWith("/tech")) {
+  if (pathname.startsWith("/tech") || pathname.startsWith("/api/time-logs") || pathname.startsWith("/api/upsells") || pathname.startsWith("/api/checklists")) {
     if (role !== "TECH" && role !== "ADMIN") {
       return deny(req, role);
     }
